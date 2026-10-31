@@ -1,0 +1,14 @@
+.docker/data/
+ssl/
+.env
+.env.*
+!.env.example
+.wwebjs_auth/
+.wwebjs_cache/
+.zapo_auth/
+.idea/
+.vscode/
+node_modules/
+dist/
+build/
+*.log
