@@ -22,14 +22,8 @@ services:
     ports:
       - "${FRONTEND_PORT:-3002}:80"
     environment:
-      - URL_BACKEND=backend:3000
       - REACT_APP_BACKEND_URL=${BACKEND_URL:-http://localhost}:${PROXY_PORT:-8082}/
       - VITE_BACKEND_URL=${BACKEND_URL:-http://localhost}:${PROXY_PORT:-8082}/
-      - FRONTEND_SERVER_NAME=${FRONTEND_SERVER_NAME:-_}
-      - BACKEND_SERVER_NAME=${BACKEND_SERVER_NAME:-_}
-    volumes:
-      - ./ssl/certs/:/etc/nginx/ssl/
-      - ./ssl/www/:/var/www/letsencrypt/
     networks:
       - whaticket
 
