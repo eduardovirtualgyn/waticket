@@ -1,7 +1,14 @@
-version: '3'
+version: '3.8'
 
 networks:
   whaticket:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  backend_public:
+  wwebjs_auth:
+  zapo_auth:
 
 services:
 
@@ -9,6 +16,9 @@ services:
     build:
       context: ./backend
       dockerfile: ./Dockerfile
+    restart: always
+    depends_on:
+      - mysql
     environment:
       - DB_HOST=mysql
       - DB_USER=root
@@ -18,29 +28,31 @@ services:
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-75756756756}
       - BACKEND_URL=${BACKEND_URL:-http://localhost}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
-      - PROXY_PORT=${PROXY_PORT:-8080}
+      - PROXY_PORT=${PROXY_PORT:-8082}
       - CHROME_ARGS=--no-sandbox --disable-setuid-sandbox
     ports:
-      - ${BACKEND_PORT:-8080}:3000
+      - "${BACKEND_PORT:-8082}:3000"
     volumes:
-      - ./backend/public/:/usr/src/app/public/
-      - ./backend/.wwebjs_auth/:/usr/src/app/.wwebjs_auth/
-      - ./backend/.zapo_auth/:/usr/src/app/.zapo_auth/
+      - backend_public:/usr/src/app/public
+      - wwebjs_auth:/usr/src/app/.wwebjs_auth
+      - zapo_auth:/usr/src/app/.zapo_auth
     networks:
       - whaticket
 
   frontend:
-    ports:
-      - ${FRONTEND_PORT:-3000}:80
-      - ${FRONTEND_SSL_PORT:-3001}:443
     build:
       context: ./frontend
       dockerfile: ./Dockerfile
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3002}:80"
     environment:
       - URL_BACKEND=backend:3000
-      - REACT_APP_BACKEND_URL=${BACKEND_URL:-http://localhost}:${PROXY_PORT:-8080}/
-      - FRONTEND_SERVER_NAME=${FRONTEND_SERVER_NAME}
-      - BACKEND_SERVER_NAME=${BACKEND_SERVER_NAME}
+      - REACT_APP_BACKEND_URL=${BACKEND_URL:-http://localhost}:${PROXY_PORT:-8082}/
+      - FRONTEND_SERVER_NAME=${FRONTEND_SERVER_NAME:-_}
+      - BACKEND_SERVER_NAME=${BACKEND_SERVER_NAME:-_}
     volumes:
       - ./ssl/certs/:/etc/nginx/ssl/
       - ./ssl/www/:/var/www/letsencrypt/
@@ -49,15 +61,15 @@ services:
 
   mysql:
     image: ${MYSQL_ENGINE:-mariadb}:${MYSQL_VERSION:-10.6}
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin    
-    volumes:
-      - ./.docker/data/:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
+    restart: always
     environment:
       - MYSQL_DATABASE=${MYSQL_DATABASE:-whaticket}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-strongpassword}
       - TZ=${TZ:-America/Fortaleza}
-    ports:
-      - ${MYSQL_PORT:-3306}:3306
-    restart: always
+    volumes:
+      - mysql_data:/var/lib/mysql
+    expose:
+      - "3306"
     networks:
       - whaticket
