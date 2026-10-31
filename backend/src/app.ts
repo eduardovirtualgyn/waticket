@@ -19,7 +19,14 @@ const app = express();
 app.use(
   cors({
     credentials: true,
-    origin: process.env.FRONTEND_URL
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const frontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, "");
+      if (!frontendUrl || origin.replace(/\/$/, "") === frontendUrl) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    }
   })
 );
 app.use(cookieParser());

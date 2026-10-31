@@ -22,8 +22,8 @@ services:
     ports:
       - "${FRONTEND_PORT:-3002}:80"
     environment:
-      - REACT_APP_BACKEND_URL=${BACKEND_URL:-http://localhost}:${PROXY_PORT:-8082}/
-      - VITE_BACKEND_URL=${BACKEND_URL:-http://localhost}:${PROXY_PORT:-8082}/
+      - REACT_APP_BACKEND_URL=${BACKEND_URL:-http://localhost:8082}
+      - VITE_BACKEND_URL=${BACKEND_URL:-http://localhost:8082}
     networks:
       - whaticket
 
@@ -41,9 +41,8 @@ services:
       - DB_NAME=${MYSQL_DATABASE:-whaticket}
       - JWT_SECRET=${JWT_SECRET:-3123123213123}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-75756756756}
-      - BACKEND_URL=${BACKEND_URL:-http://localhost}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
-      - PROXY_PORT=${PROXY_PORT:-8082}
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:8082}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3002}
       - CHROME_ARGS=--no-sandbox --disable-setuid-sandbox
     ports:
       - "${BACKEND_PORT:-8082}:3000"
