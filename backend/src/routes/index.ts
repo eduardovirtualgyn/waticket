@@ -14,6 +14,13 @@ import apiRoutes from "./apiRoutes";
 
 const routes = Router();
 
+routes.get("/", (req, res) => {
+  return res.json({
+    status: "online",
+    message: "Whaticket Backend API is running"
+  });
+});
+
 routes.use(userRoutes);
 routes.use("/auth", authRoutes);
 routes.use(settingRoutes);
