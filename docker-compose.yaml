@@ -5,7 +5,7 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_data:
+  whaticket_mysql_data:
   backend_public:
   wwebjs_auth:
   zapo_auth:
@@ -37,8 +37,8 @@ services:
     environment:
       - PORT=3000
       - DB_HOST=mysql
-      - DB_USER=root
-      - DB_PASS=${MYSQL_ROOT_PASSWORD:-strongpassword}
+      - DB_USER=${DB_USER:-whaticket}
+      - DB_PASS=${DB_PASS:-whaticketpassword}
       - DB_NAME=${MYSQL_DATABASE:-whaticket}
       - JWT_SECRET=${JWT_SECRET:-3123123213123}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-75756756756}
@@ -61,9 +61,12 @@ services:
     environment:
       - MYSQL_DATABASE=${MYSQL_DATABASE:-whaticket}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-strongpassword}
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_USER=${DB_USER:-whaticket}
+      - MYSQL_PASSWORD=${DB_PASS:-whaticketpassword}
       - TZ=${TZ:-America/Fortaleza}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - whaticket_mysql_data:/var/lib/mysql
     expose:
       - "3306"
     networks:
