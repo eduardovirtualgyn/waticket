@@ -10,6 +10,8 @@ import Queue from "../models/Queue";
 import WhatsappQueue from "../models/WhatsappQueue";
 import UserQueue from "../models/UserQueue";
 import QuickAnswer from "../models/QuickAnswer";
+import Campaign from "../models/Campaign";
+import CampaignShipping from "../models/CampaignShipping";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -28,7 +30,9 @@ const models = [
   Queue,
   WhatsappQueue,
   UserQueue,
-  QuickAnswer
+  QuickAnswer,
+  Campaign,
+  CampaignShipping
 ];
 
 sequelize.addModels(models);

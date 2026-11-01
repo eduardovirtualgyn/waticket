@@ -16,6 +16,7 @@ import PeopleAltOutlinedIcon from "@material-ui/icons/PeopleAltOutlined";
 import ContactPhoneOutlinedIcon from "@material-ui/icons/ContactPhoneOutlined";
 import AccountTreeOutlinedIcon from "@material-ui/icons/AccountTreeOutlined";
 import QuestionAnswerOutlinedIcon from "@material-ui/icons/QuestionAnswerOutlined";
+import SendIcon from "@material-ui/icons/Send";
 
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
@@ -196,6 +197,12 @@ const MainListItems = (props) => {
         to="/quickAnswers"
         primary={i18n.t("mainDrawer.listItems.quickAnswers")}
         icon={<QuestionAnswerOutlinedIcon />}
+        collapsed={collapsed}
+      />
+      <ListItemLink
+        to="/campaigns"
+        primary={i18n.t("mainDrawer.listItems.campaigns")}
+        icon={<SendIcon />}
         collapsed={collapsed}
       />
       <Can

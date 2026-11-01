@@ -1,0 +1,457 @@
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Tabs,
+  Tab,
+  Box,
+  Typography,
+  Chip,
+  Checkbox,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Paper,
+  CircularProgress
+} from "@material-ui/core";
+import AttachFileIcon from "@material-ui/icons/AttachFile";
+import CloudUploadIcon from "@material-ui/icons/CloudUpload";
+import api from "../../services/api";
+import { toast } from "react-toastify";
+import toastError from "../../errors/toastError";
+
+const CampaignModal = ({ open, onClose, onSave }) => {
+  const [tab, setTab] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [whatsapps, setWhatsapps] = useState([]);
+  const [contacts, setContacts] = useState([]);
+
+  // Campaign Form State
+  const [name, setName] = useState("");
+  const [whatsappId, setWhatsappId] = useState("");
+  const [message, setMessage] = useState("");
+  const [minDelay, setMinDelay] = useState(20);
+  const [maxDelay, setMaxDelay] = useState(45);
+  const [media, setMedia] = useState(null);
+
+  // Recipients State
+  const [rawTextNumbers, setRawTextNumbers] = useState("");
+  const [selectedContactIds, setSelectedContactIds] = useState([]);
+  const [searchContact, setSearchContact] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      // Reset form
+      setName("");
+      setMessage("");
+      setMedia(null);
+      setMinDelay(20);
+      setMaxDelay(45);
+      setRawTextNumbers("");
+      setSelectedContactIds([]);
+      setTab(0);
+
+      // Load Whatsapps
+      api.get("/whatsapp").then((res) => {
+        setWhatsapps(res.data || []);
+        const defaultWapp = res.data.find((w) => w.isDefault && w.status === "CONNECTED") || res.data[0];
+        if (defaultWapp) {
+          setWhatsappId(defaultWapp.id);
+        }
+      });
+
+      // Load contacts
+      api.get("/contacts/list").then((res) => {
+        setContacts(res.data || []);
+      }).catch(() => {
+        // Fallback if list endpoint not available
+        api.get("/contacts?pageNumber=1").then((res) => {
+          setContacts(res.data.contacts || []);
+        });
+      });
+    }
+  }, [open]);
+
+  // Handle CSV/TXT File Upload to paste into rawTextNumbers
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target.result;
+      setRawTextNumbers((prev) => (prev ? prev + "\n" + content : content));
+      toast.success("Contatos importados do arquivo para a lista!");
+    };
+    reader.readAsText(file);
+  };
+
+  // Calculate parsed recipients count
+  const parsedRawCount = rawTextNumbers
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.replace(/\D/g, "").length >= 8).length;
+
+  const totalRecipients = parsedRawCount + selectedContactIds.length;
+
+  const handleToggleContact = (id) => {
+    setSelectedContactIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllContacts = () => {
+    if (selectedContactIds.length === filteredContacts.length) {
+      setSelectedContactIds([]);
+    } else {
+      setSelectedContactIds(filteredContacts.map((c) => c.id));
+    }
+  };
+
+  const filteredContacts = contacts.filter(
+    (c) =>
+      c.name?.toLowerCase().includes(searchContact.toLowerCase()) ||
+      c.number?.includes(searchContact)
+  );
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      toast.error("Informe o nome da campanha.");
+      return;
+    }
+    if (!whatsappId) {
+      toast.error("Selecione a conexão do WhatsApp.");
+      return;
+    }
+    if (!message.trim() && !media) {
+      toast.error("Informe uma mensagem de texto ou anexe uma mídia.");
+      return;
+    }
+    if (totalRecipients === 0) {
+      toast.error("Adicione ao menos um destinatário na aba Destinatários.");
+      setTab(1);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Parse raw text contacts (number, name)
+      const rawContacts = rawTextNumbers
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .map((line) => {
+          const parts = line.split(/[,;\t]/);
+          const number = parts[0]?.trim();
+          const contactName = parts[1]?.trim() || "";
+          return { number, name: contactName };
+        })
+        .filter((c) => c.number.replace(/\D/g, "").length >= 8);
+
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("whatsappId", whatsappId);
+      formData.append("message", message);
+      formData.append("minDelay", minDelay);
+      formData.append("maxDelay", maxDelay);
+      formData.append("contactIds", JSON.stringify(selectedContactIds));
+      formData.append("rawContacts", JSON.stringify(rawContacts));
+
+      if (media) {
+        formData.append("media", media);
+      }
+
+      await api.post("/campaigns", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      toast.success("Campanha criada com sucesso!");
+      setLoading(false);
+      onSave();
+      onClose();
+    } catch (err) {
+      setLoading(false);
+      toastError(err);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Nova Campanha de Disparo</DialogTitle>
+      <form onSubmit={handleSubmit}>
+        <Tabs
+          value={tab}
+          onChange={(e, val) => setTab(val)}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
+        >
+          <Tab label="1. Mensagem & Disparo" />
+          <Tab
+            label={
+              <Box display="flex" alignItems="center">
+                2. Destinatários
+                {totalRecipients > 0 && (
+                  <Chip
+                    size="small"
+                    label={totalRecipients}
+                    color="primary"
+                    style={{ marginLeft: 8 }}
+                  />
+                )}
+              </Box>
+            }
+          />
+        </Tabs>
+
+        <DialogContent dividers>
+          {tab === 0 && (
+            <Box display="flex" flexDirection="column" gridGap={16}>
+              <TextField
+                label="Nome da Campanha"
+                variant="outlined"
+                fullWidth
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Promoção de Black Friday"
+              />
+
+              <FormControl variant="outlined" fullWidth required>
+                <InputLabel>Conexão WhatsApp (Chip de Envio)</InputLabel>
+                <Select
+                  value={whatsappId}
+                  onChange={(e) => setWhatsappId(e.target.value)}
+                  label="Conexão WhatsApp (Chip de Envio)"
+                >
+                  {whatsapps.map((w) => (
+                    <MenuItem key={w.id} value={w.id}>
+                      {w.name} ({w.status === "CONNECTED" ? "🟢 Conectado" : "🔴 " + w.status})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <Box>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                  <Typography variant="subtitle2">Mensagem</Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setMessage((prev) => prev + " {nome}")}
+                  >
+                    + Inserir {"{nome}"}
+                  </Button>
+                </Box>
+                <TextField
+                  variant="outlined"
+                  multiline
+                  rows={5}
+                  fullWidth
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Olá {nome}! Tudo bem? Temos uma novidade especial para você..."
+                  helperText="Dica: Use a tag {nome} para personalizar a mensagem com o nome do contato."
+                />
+              </Box>
+
+              <Box display="flex" alignItems="center" gridGap={16}>
+                <input
+                  type="file"
+                  id="campaign-media-upload"
+                  style={{ display: "none" }}
+                  onChange={(e) => setMedia(e.target.files[0])}
+                />
+                <label htmlFor="campaign-media-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<AttachFileIcon />}
+                  >
+                    {media ? "Substituir Anexo" : "Anexar Mídia (Imagem/PDF/Áudio)"}
+                  </Button>
+                </label>
+                {media && (
+                  <Chip
+                    label={media.name}
+                    onDelete={() => setMedia(null)}
+                    color="secondary"
+                  />
+                )}
+              </Box>
+
+              <Box mt={1} p={2} style={{ backgroundColor: "#f5f5f5", borderRadius: 8 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  🛡️ Intervalo Anti-Ban (Delay aleatório entre envios)
+                </Typography>
+                <Typography variant="caption" color="textSecondary" display="block" gutterBottom>
+                  O sistema aguardará um tempo aleatório entre os segundos mínimo e máximo antes de disparar cada mensagem, simulando a digitação humana.
+                </Typography>
+                <Box display="flex" gridGap={16} mt={1}>
+                  <TextField
+                    label="Mínimo (segundos)"
+                    type="number"
+                    variant="outlined"
+                    size="small"
+                    value={minDelay}
+                    onChange={(e) => setMinDelay(Number(e.target.value))}
+                  />
+                  <TextField
+                    label="Máximo (segundos)"
+                    type="number"
+                    variant="outlined"
+                    size="small"
+                    value={maxDelay}
+                    onChange={(e) => setMaxDelay(Number(e.target.value))}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          )}
+
+          {tab === 1 && (
+            <Box display="flex" flexDirection="column" gridGap={16}>
+              <Box p={2} style={{ backgroundColor: "#e3f2fd", borderRadius: 8 }}>
+                <Typography variant="subtitle2" style={{ color: "#0d47a1" }}>
+                  Destinatários da Campanha: {totalRecipients} contato(s)
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  Você pode colar números diretamente, subir uma planilha/arquivo de texto ou selecionar contatos da sua agenda.
+                </Typography>
+              </Box>
+
+              <Box>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                  <Typography variant="subtitle2">
+                    Opção A: Colar Números ou Importar Arquivo
+                  </Typography>
+                  <label htmlFor="upload-contacts-file">
+                    <input
+                      id="upload-contacts-file"
+                      type="file"
+                      accept=".csv,.txt"
+                      style={{ display: "none" }}
+                      onChange={handleFileUpload}
+                    />
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      component="span"
+                      startIcon={<CloudUploadIcon />}
+                    >
+                      Upload .CSV / .TXT
+                    </Button>
+                  </label>
+                </Box>
+                <TextField
+                  variant="outlined"
+                  multiline
+                  rows={5}
+                  fullWidth
+                  value={rawTextNumbers}
+                  onChange={(e) => setRawTextNumbers(e.target.value)}
+                  placeholder="Cole um número por linha (com DDD). Exemplos:&#10;5511999998888, João Silva&#10;5521988887777&#10;5531977776666, Maria"
+                  helperText={`Números válidos identificados no texto: ${parsedRawCount}`}
+                />
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  Opção B: Selecionar da Agenda de Contatos
+                </Typography>
+                <Box display="flex" gridGap={16} mb={1}>
+                  <TextField
+                    placeholder="Pesquisar contatos..."
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    value={searchContact}
+                    onChange={(e) => setSearchContact(e.target.value)}
+                  />
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handleSelectAllContacts}
+                  >
+                    {selectedContactIds.length === filteredContacts.length && filteredContacts.length > 0
+                      ? "Desmarcar Todos"
+                      : "Selecionar Todos"}
+                  </Button>
+                </Box>
+
+                <Paper variant="outlined" style={{ maxHeight: 200, overflowY: "auto" }}>
+                  <List dense>
+                    {filteredContacts.map((c) => (
+                      <ListItem
+                        key={c.id}
+                        button
+                        onClick={() => handleToggleContact(c.id)}
+                      >
+                        <ListItemIcon>
+                          <Checkbox
+                            edge="start"
+                            checked={selectedContactIds.includes(c.id)}
+                            tabIndex={-1}
+                            disableRipple
+                          />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={c.name}
+                          secondary={c.number}
+                        />
+                      </ListItem>
+                    ))}
+                    {filteredContacts.length === 0 && (
+                      <ListItem>
+                        <ListItemText secondary="Nenhum contato encontrado." />
+                      </ListItem>
+                    )}
+                  </List>
+                </Paper>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={onClose} color="default" disabled={loading}>
+            Cancelar
+          </Button>
+          {tab === 0 ? (
+            <Button
+              onClick={() => setTab(1)}
+              color="primary"
+              variant="contained"
+            >
+              Próximo: Destinatários ➔
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              color="primary"
+              variant="contained"
+              disabled={loading}
+              startIcon={loading && <CircularProgress size={20} />}
+            >
+              Criar Campanha
+            </Button>
+          )}
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+export default CampaignModal;

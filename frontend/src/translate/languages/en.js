@@ -283,6 +283,7 @@ const messages = {
           connections: "Connections",
           tickets: "Tickets",
           contacts: "Contacts",
+          campaigns: "Campaigns",
           quickAnswers: "Quick Answers",
           queues: "Queues",
           administration: "Administration",
