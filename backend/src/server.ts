@@ -4,8 +4,9 @@ import { initIO } from "./libs/socket";
 import { logger } from "./utils/logger";
 import { StartAllWhatsAppsSessions } from "./services/WbotServices/StartAllWhatsAppsSessions";
 
-const server = app.listen(process.env.PORT, () => {
-  logger.info(`Server started on port: ${process.env.PORT}`);
+const port = process.env.PORT || 3000;
+const server = app.listen(port, () => {
+  logger.info(`Server started on port: ${port}`);
 });
 
 initIO(server);

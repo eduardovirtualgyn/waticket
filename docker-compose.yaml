@@ -35,6 +35,7 @@ services:
     depends_on:
       - mysql
     environment:
+      - PORT=3000
       - DB_HOST=mysql
       - DB_USER=root
       - DB_PASS=${MYSQL_ROOT_PASSWORD:-strongpassword}
