@@ -45,6 +45,7 @@ services:
       - BACKEND_URL=${BACKEND_URL:-http://localhost:8082}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3002}
       - CHROME_ARGS=--no-sandbox --disable-setuid-sandbox
+      - WHATSAPP_PROVIDER=${WHATSAPP_PROVIDER:-zapo}
     ports:
       - "${BACKEND_PORT:-8082}:3000"
     volumes:
