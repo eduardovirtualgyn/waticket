@@ -148,6 +148,44 @@ const Login = () => {
               </Link>
             </Grid>
           </Grid>
+          <Box display="flex" justifyContent="center" mt={3}>
+            <Button
+              size="small"
+              style={{ marginRight: 8 }}
+              variant={!i18n.language || i18n.language.startsWith("pt") ? "contained" : "outlined"}
+              color="primary"
+              onClick={() => {
+                i18n.changeLanguage("pt");
+                localStorage.setItem("i18nextLng", "pt");
+                window.location.reload();
+              }}
+            >
+              🇧🇷 Português
+            </Button>
+            <Button
+              size="small"
+              style={{ marginRight: 8 }}
+              variant={i18n.language && i18n.language.startsWith("en") ? "contained" : "outlined"}
+              onClick={() => {
+                i18n.changeLanguage("en");
+                localStorage.setItem("i18nextLng", "en");
+                window.location.reload();
+              }}
+            >
+              🇺🇸 English
+            </Button>
+            <Button
+              size="small"
+              variant={i18n.language && i18n.language.startsWith("es") ? "contained" : "outlined"}
+              onClick={() => {
+                i18n.changeLanguage("es");
+                localStorage.setItem("i18nextLng", "es");
+                window.location.reload();
+              }}
+            >
+              🇪🇸 Español
+            </Button>
+          </Box>
         </form>
       </div>
       <Box mt={8}>{/* <Copyright /> */}</Box>

@@ -7,12 +7,15 @@ import {
   Toolbar,
   List,
   IconButton,
+  Menu,
+  MenuItem,
   useMediaQuery,
 } from "@material-ui/core";
 import MenuIcon from "@material-ui/icons/Menu";
 import MenuOpenIcon from "@material-ui/icons/MenuOpen";
 import Brightness4Icon from "@material-ui/icons/Brightness4";
 import Brightness7Icon from "@material-ui/icons/Brightness7";
+import TranslateIcon from "@material-ui/icons/Translate";
 
 import MainListItems from "./MainListItems";
 import NotificationsPopOver from "../components/NotificationsPopOver";
@@ -135,6 +138,15 @@ const LoggedInLayout = ({ children }) => {
     }
   };
 
+  const [langAnchor, setLangAnchor] = useState(null);
+
+  const handleLangChange = (lang) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem("i18nextLng", lang);
+    setLangAnchor(null);
+    window.location.reload();
+  };
+
   if (loading) {
     return <BackdropLoading />;
   }
@@ -177,6 +189,24 @@ const LoggedInLayout = ({ children }) => {
           </IconButton>
           <img src={logo} alt="Whaticket" className={classes.logo} />
           <div className={classes.grow} />
+
+          <IconButton
+            aria-label="Idioma"
+            onClick={(e) => setLangAnchor(e.currentTarget)}
+            className={classes.headerIcon}
+          >
+            <TranslateIcon />
+          </IconButton>
+          <Menu
+            anchorEl={langAnchor}
+            keepMounted
+            open={Boolean(langAnchor)}
+            onClose={() => setLangAnchor(null)}
+          >
+            <MenuItem onClick={() => handleLangChange("pt")}>🇧🇷 Português</MenuItem>
+            <MenuItem onClick={() => handleLangChange("en")}>🇺🇸 English</MenuItem>
+            <MenuItem onClick={() => handleLangChange("es")}>🇪🇸 Español</MenuItem>
+          </Menu>
 
           <IconButton
             aria-label={i18n.t("mainDrawer.appBar.darkMode")}
