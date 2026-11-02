@@ -26,6 +26,9 @@ import {
 } from "@material-ui/core";
 import AttachFileIcon from "@material-ui/icons/AttachFile";
 import CloudUploadIcon from "@material-ui/icons/CloudUpload";
+import GroupIcon from "@material-ui/icons/Group";
+import PersonIcon from "@material-ui/icons/Person";
+import SyncIcon from "@material-ui/icons/Sync";
 import api from "../../services/api";
 import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
@@ -49,6 +52,18 @@ const CampaignModal = ({ open, onClose, onSave }) => {
   const [selectedContactIds, setSelectedContactIds] = useState([]);
   const [searchContact, setSearchContact] = useState("");
   const [showOnlySelected, setShowOnlySelected] = useState(false);
+  const [contactTypeFilter, setContactTypeFilter] = useState("all"); // "all" | "individual" | "group"
+  const [syncingGroups, setSyncingGroups] = useState(false);
+
+  const loadContacts = () => {
+    api.get("/contacts/list").then((res) => {
+      setContacts(res.data || []);
+    }).catch(() => {
+      api.get("/contacts?pageNumber=1").then((res) => {
+        setContacts(res.data.contacts || []);
+      });
+    });
+  };
 
   useEffect(() => {
     if (open) {
@@ -62,6 +77,7 @@ const CampaignModal = ({ open, onClose, onSave }) => {
       setSelectedContactIds([]);
       setSearchContact("");
       setShowOnlySelected(false);
+      setContactTypeFilter("all");
       setTab(0);
 
       // Load Whatsapps
@@ -74,16 +90,26 @@ const CampaignModal = ({ open, onClose, onSave }) => {
       });
 
       // Load contacts
-      api.get("/contacts/list").then((res) => {
-        setContacts(res.data || []);
-      }).catch(() => {
-        // Fallback if list endpoint not available
-        api.get("/contacts?pageNumber=1").then((res) => {
-          setContacts(res.data.contacts || []);
-        });
-      });
+      loadContacts();
     }
   }, [open]);
+
+  const handleSyncGroups = async () => {
+    setSyncingGroups(true);
+    try {
+      const res = await api.post("/contacts/import/groups", { whatsappId });
+      toast.success(
+        res.data?.total
+          ? `${res.data.total} grupo(s) encontrado(s) no WhatsApp (${res.data.count} adicionados)!`
+          : "Grupos sincronizados com sucesso!"
+      );
+      loadContacts();
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setSyncingGroups(false);
+    }
+  };
 
   // Handle CSV/TXT File Upload to paste into rawTextNumbers
   const handleFileUpload = (e) => {
@@ -142,12 +168,21 @@ const CampaignModal = ({ open, onClose, onSave }) => {
     if (showOnlySelected && !selectedContactIds.includes(c.id)) {
       return false;
     }
+    if (contactTypeFilter === "individual" && c.isGroup) {
+      return false;
+    }
+    if (contactTypeFilter === "group" && !c.isGroup) {
+      return false;
+    }
     if (!searchContact) return true;
     return (
       c.name?.toLowerCase().includes(searchContact.toLowerCase()) ||
       c.number?.includes(searchContact)
     );
   });
+
+  const totalGroups = contacts.filter((c) => c.isGroup).length;
+  const totalIndividual = contacts.length - totalGroups;
 
   const allFilteredSelected =
     filteredContacts.length > 0 &&
@@ -412,13 +447,55 @@ const CampaignModal = ({ open, onClose, onSave }) => {
               </Box>
 
               <Box>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} flexWrap="wrap" gridGap={8}>
                   <Typography variant="subtitle2">
-                    Opção B: Selecionar da Agenda de Contatos
+                    Opção B: Selecionar da Agenda de Contatos e Grupos
                   </Typography>
-                  <Typography variant="body2" style={{ fontWeight: 600, color: "#3f51b5" }}>
-                    {selectedContactIds.length} selecionado(s) de {contacts.length} cadastrados
-                  </Typography>
+                  <Box display="flex" alignItems="center" gridGap={8}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="secondary"
+                      onClick={handleSyncGroups}
+                      disabled={syncingGroups}
+                      startIcon={syncingGroups ? <CircularProgress size={14} /> : <SyncIcon />}
+                    >
+                      {syncingGroups ? "Sincronizando..." : "Sincronizar Grupos do WhatsApp"}
+                    </Button>
+                    <Typography variant="body2" style={{ fontWeight: 600, color: "#3f51b5" }}>
+                      {selectedContactIds.length} selecionado(s) de {contacts.length} cadastrados
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Filter chips: Todos / Contatos / Grupos */}
+                <Box display="flex" gridGap={8} mb={1} alignItems="center">
+                  <Chip
+                    label={`Todos (${contacts.length})`}
+                    color={contactTypeFilter === "all" ? "primary" : "default"}
+                    onClick={() => setContactTypeFilter("all")}
+                    clickable
+                    size="small"
+                    variant={contactTypeFilter === "all" ? "default" : "outlined"}
+                  />
+                  <Chip
+                    icon={<PersonIcon style={{ fontSize: 16 }} />}
+                    label={`Contatos (${totalIndividual})`}
+                    color={contactTypeFilter === "individual" ? "primary" : "default"}
+                    onClick={() => setContactTypeFilter("individual")}
+                    clickable
+                    size="small"
+                    variant={contactTypeFilter === "individual" ? "default" : "outlined"}
+                  />
+                  <Chip
+                    icon={<GroupIcon style={{ fontSize: 16 }} />}
+                    label={`Grupos (${totalGroups})`}
+                    color={contactTypeFilter === "group" ? "primary" : "default"}
+                    onClick={() => setContactTypeFilter("group")}
+                    clickable
+                    size="small"
+                    variant={contactTypeFilter === "group" ? "default" : "outlined"}
+                  />
                 </Box>
 
                 <Box display="flex" gridGap={8} mb={1} alignItems="center">
@@ -496,7 +573,29 @@ const CampaignModal = ({ open, onClose, onSave }) => {
                           />
                         </ListItemIcon>
                         <ListItemText
-                          primary={c.name}
+                          primary={
+                            <Box display="flex" alignItems="center" gridGap={6}>
+                              {c.isGroup ? (
+                                <GroupIcon style={{ color: "#009688", fontSize: 18 }} />
+                              ) : (
+                                <PersonIcon style={{ color: "#9e9e9e", fontSize: 18 }} />
+                              )}
+                              <span>{c.name || c.number}</span>
+                              {c.isGroup && (
+                                <Chip
+                                  label="Grupo"
+                                  size="small"
+                                  style={{
+                                    height: 18,
+                                    fontSize: 10,
+                                    backgroundColor: "#e0f2f1",
+                                    color: "#00796b",
+                                    fontWeight: 600
+                                  }}
+                                />
+                              )}
+                            </Box>
+                          }
                           secondary={c.number}
                         />
                       </ListItem>

@@ -91,7 +91,15 @@ export const runCampaign = async (campaignId: number): Promise<void> => {
   try {
     await shipping.update({ status: "PROCESSING" });
 
-    const cleanNumber = shipping.number.replace(/\D/g, "");
+    const isGroupNumber =
+      shipping.number.includes("-") ||
+      shipping.number.endsWith("@g.us") ||
+      shipping.number.length >= 17;
+
+    const cleanNumber = isGroupNumber
+      ? shipping.number.replace("@g.us", "").trim()
+      : shipping.number.replace(/\D/g, "");
+
     const contactName = shipping.name || cleanNumber;
 
     // Personalize variables
@@ -105,24 +113,32 @@ export const runCampaign = async (campaignId: number): Promise<void> => {
     let contact: Contact;
     if (shipping.contactId) {
       const found = await Contact.findByPk(shipping.contactId);
-      contact = found || (await CreateOrUpdateContactService({
-        name: contactName,
-        number: cleanNumber,
-        isGroup: false
-      }));
+      contact =
+        found ||
+        (await CreateOrUpdateContactService({
+          name: contactName,
+          number: cleanNumber,
+          isGroup: isGroupNumber
+        }));
     } else {
       contact = await CreateOrUpdateContactService({
         name: contactName,
         number: cleanNumber,
-        isGroup: false
+        isGroup: isGroupNumber
       });
       await shipping.update({ contactId: contact.id });
     }
 
-    const ticket = await FindOrCreateTicketService(contact, campaign.whatsappId, 0);
+    const isGroup = !!contact.isGroup || isGroupNumber;
+    const ticket = await FindOrCreateTicketService(
+      contact,
+      campaign.whatsappId,
+      0,
+      isGroup ? contact : undefined
+    );
     SetTicketMessagesAsRead(ticket);
 
-    const chatId = `${cleanNumber}@c.us`;
+    const chatId = isGroup ? `${cleanNumber}@g.us` : `${cleanNumber}@c.us`;
 
     if (campaign.mediaPath) {
       const mediaMime = getMimetypeFromPath(campaign.mediaPath);

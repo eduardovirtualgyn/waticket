@@ -619,6 +619,24 @@ const init = async (whatsapp: Whatsapp): Promise<void> => {
   }
 };
 
+const getGroups = async (
+  sessionId: number
+): Promise<Array<{ id: string; name: string }>> => {
+  const wbot = getWbot(sessionId);
+  try {
+    const chats = await wbot.getChats();
+    return chats
+      .filter((c: any) => c.isGroup)
+      .map((c: any) => ({
+        id: (c.id?._serialized || c.id?.user || "").replace("@g.us", ""),
+        name: c.name || c.id?._serialized
+      }));
+  } catch (err) {
+    logger.warn({ info: "Could not get groups via wwebjs", err });
+    return [];
+  }
+};
+
 export const WhatsappWebJsProvider: WhatsappProvider = {
   init,
   removeSession,
@@ -630,5 +648,7 @@ export const WhatsappWebJsProvider: WhatsappProvider = {
   getProfilePicUrl,
   getContacts,
   sendSeen,
-  fetchChatMessages
+  fetchChatMessages,
+  getGroups
 };
+

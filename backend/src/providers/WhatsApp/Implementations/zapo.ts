@@ -1043,6 +1043,32 @@ const fetchChatMessages = async (
   }, []);
 };
 
+const getGroups = async (
+  sessionId: number
+): Promise<Array<{ id: string; name: string }>> => {
+  const client = getWbot(sessionId);
+  const groupsList: Array<{ id: string; name: string }> = [];
+
+  try {
+    if (client.group && typeof (client.group as any).queryAllGroups === "function") {
+      const groups = await (client.group as any).queryAllGroups();
+      const rawList = Array.isArray(groups) ? groups : Object.values(groups || {});
+      for (const g of rawList as any[]) {
+        const jid = g.id || g.jid || "";
+        const id = extractNumber(jid) || jid.replace("@g.us", "");
+        const name = g.subject || g.name || id;
+        if (id) {
+          groupsList.push({ id, name });
+        }
+      }
+    }
+  } catch (err) {
+    logger.warn({ info: "Could not query all groups via client.group.queryAllGroups", err });
+  }
+
+  return groupsList;
+};
+
 export const ZapoProvider: WhatsappProvider = {
   init,
   removeSession,
@@ -1054,5 +1080,7 @@ export const ZapoProvider: WhatsappProvider = {
   getProfilePicUrl,
   getContacts,
   sendSeen,
-  fetchChatMessages
+  fetchChatMessages,
+  getGroups
 };
+

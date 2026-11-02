@@ -71,7 +71,11 @@ const CreateCampaignService = async ({
     });
 
     for (const c of contacts) {
-      const cleanNumber = c.number.replace(/\D/g, "");
+      const isGroup = !!c.isGroup || c.number.includes("-") || c.number.endsWith("@g.us");
+      const cleanNumber = isGroup
+        ? c.number.replace("@g.us", "").trim()
+        : c.number.replace(/\D/g, "");
+
       if (cleanNumber && !addedNumbers.has(cleanNumber)) {
         addedNumbers.add(cleanNumber);
         shippingsToCreate.push({
@@ -89,7 +93,11 @@ const CreateCampaignService = async ({
   if (rawContacts && rawContacts.length > 0) {
     for (const raw of rawContacts) {
       if (!raw.number) continue;
-      const cleanNumber = String(raw.number).replace(/\D/g, "");
+      const isGroup = String(raw.number).includes("@g.us") || String(raw.number).includes("-");
+      const cleanNumber = isGroup
+        ? String(raw.number).replace("@g.us", "").trim()
+        : String(raw.number).replace(/\D/g, "");
+
       if (cleanNumber.length >= 8 && !addedNumbers.has(cleanNumber)) {
         addedNumbers.add(cleanNumber);
         shippingsToCreate.push({

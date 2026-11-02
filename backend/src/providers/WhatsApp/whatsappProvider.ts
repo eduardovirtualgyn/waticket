@@ -40,6 +40,7 @@ export interface WhatsappProvider {
     chatId: string,
     limit: number
   ): Promise<ProviderMessage[]>;
+  getGroups(sessionId: number): Promise<Array<{ id: string; name: string }>>;
 }
 
 const provider = process.env.WHATSAPP_PROVIDER || "wwebjs";

@@ -14,6 +14,7 @@ import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
 import AppError from "../errors/AppError";
 import GetContactService from "../services/ContactServices/GetContactService";
 import ImportCsvContactsService from "../services/ContactServices/ImportCsvContactsService";
+import ImportGroupsService from "../services/WbotServices/ImportGroupsService";
 import fs from "fs";
 
 import Contact from "../models/Contact";
@@ -61,7 +62,7 @@ export const list = async (req: Request, res: Response): Promise<Response> => {
   const contacts = await Contact.findAll({
     where: whereCondition,
     order: [["name", "ASC"]],
-    attributes: ["id", "name", "number", "email"]
+    attributes: ["id", "name", "number", "email", "isGroup"]
   });
 
   return res.json(contacts);
@@ -220,4 +221,18 @@ export const importCsv = async (
 
   return res.status(200).json(result);
 };
+
+export const importGroups = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { whatsappId } = req.body;
+
+  const result = await ImportGroupsService(
+    whatsappId ? Number(whatsappId) : undefined
+  );
+
+  return res.status(200).json(result);
+};
+
 

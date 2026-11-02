@@ -13,6 +13,7 @@ import Button from "@material-ui/core/Button";
 import Avatar from "@material-ui/core/Avatar";
 import WhatsAppIcon from "@material-ui/icons/WhatsApp";
 import SearchIcon from "@material-ui/icons/Search";
+import GroupIcon from "@material-ui/icons/Group";
 import TextField from "@material-ui/core/TextField";
 import InputAdornment from "@material-ui/core/InputAdornment";
 
@@ -205,6 +206,21 @@ const Contacts = () => {
     }
   };
 
+  const handleSyncGroups = async () => {
+    try {
+      const res = await api.post("/contacts/import/groups");
+      toast.success(
+        res.data?.total
+          ? `${res.data.total} grupos encontrados no WhatsApp (${res.data.count} novos adicionados)!`
+          : "Grupos sincronizados com sucesso!"
+      );
+      dispatch({ type: "RESET" });
+      setPageNumber(1);
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   const loadMore = () => {
     setPageNumber((prevState) => prevState + 1);
   };
@@ -285,6 +301,13 @@ const Contacts = () => {
           </Button>
           <Button
             variant="contained"
+            style={{ backgroundColor: "#009688", color: "#fff" }}
+            onClick={handleSyncGroups}
+          >
+            Sincronizar Grupos
+          </Button>
+          <Button
+            variant="contained"
             color="primary"
             onClick={handleOpenContactModal}
           >
@@ -320,7 +343,19 @@ const Contacts = () => {
                   <TableCell style={{ paddingRight: 0 }}>
                     {<Avatar src={contact.profilePicUrl} />}
                   </TableCell>
-                  <TableCell>{contact.name}</TableCell>
+                  <TableCell>
+                    {contact.isGroup && (
+                      <GroupIcon
+                        style={{
+                          color: "#009688",
+                          fontSize: 18,
+                          verticalAlign: "middle",
+                          marginRight: 6
+                        }}
+                      />
+                    )}
+                    {contact.name}
+                  </TableCell>
                   <TableCell
                     align="center"
                     data-label={i18n.t("contacts.table.whatsapp")}

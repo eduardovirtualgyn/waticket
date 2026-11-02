@@ -22,6 +22,12 @@ contactRoutes.post(
   ContactController.importCsv
 );
 
+contactRoutes.post(
+  "/contacts/import/groups",
+  isAuth,
+  ContactController.importGroups
+);
+
 contactRoutes.get("/contacts/list", isAuth, ContactController.list);
 
 contactRoutes.get("/contacts", isAuth, ContactController.index);
