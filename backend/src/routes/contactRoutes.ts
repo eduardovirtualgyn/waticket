@@ -22,6 +22,8 @@ contactRoutes.post(
   ContactController.importCsv
 );
 
+contactRoutes.get("/contacts/list", isAuth, ContactController.list);
+
 contactRoutes.get("/contacts", isAuth, ContactController.index);
 
 contactRoutes.get("/contacts/:contactId", isAuth, ContactController.show);

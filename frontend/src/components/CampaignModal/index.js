@@ -89,8 +89,33 @@ const CampaignModal = ({ open, onClose, onSave }) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target.result;
-      setRawTextNumbers((prev) => (prev ? prev + "\n" + content : content));
-      toast.success("Contatos importados do arquivo para a lista!");
+      const lines = content.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const extracted = [];
+      for (const line of lines) {
+        const parts = line.split(/[,;\t]/).map((p) => p.trim().replace(/^["']|["']$/g, ""));
+        let num = "";
+        let nm = "";
+        for (const p of parts) {
+          const clean = p.replace(/\D/g, "");
+          if (clean.length >= 8 && clean.length <= 15 && !num) {
+            num = clean.length === 10 || clean.length === 11 ? "55" + clean : clean;
+          } else if (!nm && isNaN(Number(p)) && !p.includes("@") && !p.includes("http")) {
+            nm = p;
+          }
+        }
+        if (num) {
+          extracted.push(nm ? `${num}, ${nm}` : num);
+        }
+      }
+
+      if (extracted.length > 0) {
+        const newText = extracted.join("\n");
+        setRawTextNumbers((prev) => (prev ? prev + "\n" + newText : newText));
+        toast.success(`${extracted.length} contatos extraídos do arquivo para a campanha!`);
+      } else {
+        setRawTextNumbers((prev) => (prev ? prev + "\n" + content : content));
+        toast.info("Arquivo carregado.");
+      }
     };
     reader.readAsText(file);
   };
@@ -369,7 +394,7 @@ const CampaignModal = ({ open, onClose, onSave }) => {
 
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
-                  Opção B: Selecionar da Agenda de Contatos
+                  Opção B: Selecionar da Agenda de Contatos {contacts.length > 0 && `(${contacts.length} contatos cadastrados)`}
                 </Typography>
                 <Box display="flex" gridGap={16} mb={1}>
                   <TextField

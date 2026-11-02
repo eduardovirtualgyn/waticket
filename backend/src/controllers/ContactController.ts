@@ -16,6 +16,9 @@ import GetContactService from "../services/ContactServices/GetContactService";
 import ImportCsvContactsService from "../services/ContactServices/ImportCsvContactsService";
 import fs from "fs";
 
+import Contact from "../models/Contact";
+import { Op, Sequelize } from "sequelize";
+
 type IndexQuery = {
   searchParam: string;
   pageNumber: string;
@@ -36,6 +39,33 @@ interface ContactData {
   email?: string;
   extraInfo?: ExtraInfo[];
 }
+
+export const list = async (req: Request, res: Response): Promise<Response> => {
+  const { name } = req.query as { name?: string };
+
+  const whereCondition = name
+    ? {
+        [Op.or]: [
+          {
+            name: Sequelize.where(
+              Sequelize.fn("LOWER", Sequelize.col("name")),
+              "LIKE",
+              `%${name.toLowerCase().trim()}%`
+            )
+          },
+          { number: { [Op.like]: `%${name.toLowerCase().trim()}%` } }
+        ]
+      }
+    : undefined;
+
+  const contacts = await Contact.findAll({
+    where: whereCondition,
+    order: [["name", "ASC"]],
+    attributes: ["id", "name", "number", "email"]
+  });
+
+  return res.json(contacts);
+};
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { searchParam, pageNumber } = req.query as IndexQuery;
