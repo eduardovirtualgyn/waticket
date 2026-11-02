@@ -24,6 +24,7 @@ import api from "../../services/api";
 import TableRowSkeleton from "../../components/TableRowSkeleton";
 import ResponsiveTable from "../../components/ResponsiveTable";
 import ContactModal from "../../components/ContactModal";
+import ContactImportCsvModal from "../../components/ContactImportCsvModal";
 import ConfirmationModal from "../../components/ConfirmationModal/";
 
 import { i18n } from "../../translate/i18n";
@@ -100,6 +101,7 @@ const Contacts = () => {
   const [contacts, dispatch] = useReducer(reducer, []);
   const [selectedContactId, setSelectedContactId] = useState(null);
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [importCsvModalOpen, setImportCsvModalOpen] = useState(false);
   const [deletingContact, setDeletingContact] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -223,6 +225,14 @@ const Contacts = () => {
         aria-labelledby="form-dialog-title"
         contactId={selectedContactId}
       ></ContactModal>
+      <ContactImportCsvModal
+        open={importCsvModalOpen}
+        onClose={() => setImportCsvModalOpen(false)}
+        onImport={() => {
+          dispatch({ type: "RESET" });
+          setPageNumber(1);
+        }}
+      />
       <ConfirmationModal
         title={
           deletingContact
@@ -265,6 +275,13 @@ const Contacts = () => {
             onClick={(e) => setConfirmOpen(true)}
           >
             {i18n.t("contacts.buttons.import")}
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setImportCsvModalOpen(true)}
+          >
+            {i18n.t("contacts.buttons.importCsv")}
           </Button>
           <Button
             variant="contained"

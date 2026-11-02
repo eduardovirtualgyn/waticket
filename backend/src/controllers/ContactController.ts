@@ -13,6 +13,8 @@ import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
 import AppError from "../errors/AppError";
 import GetContactService from "../services/ContactServices/GetContactService";
+import ImportCsvContactsService from "../services/ContactServices/ImportCsvContactsService";
+import fs from "fs";
 
 type IndexQuery = {
   searchParam: string;
@@ -163,3 +165,29 @@ export const remove = async (
 
   return res.status(200).json({ message: "Contact deleted" });
 };
+
+export const importCsv = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const file = req.file as Express.Multer.File;
+  const { contacts: rawContactsJson, text } = req.body;
+
+  let content = "";
+  if (file) {
+    content = fs.readFileSync(file.path, "utf-8");
+    try {
+      fs.unlinkSync(file.path);
+    } catch {}
+  } else if (text) {
+    content = text;
+  }
+
+  const result = await ImportCsvContactsService({
+    content,
+    contactsJson: rawContactsJson
+  });
+
+  return res.status(200).json(result);
+};
+

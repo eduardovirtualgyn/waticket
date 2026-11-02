@@ -135,6 +135,7 @@ const messages = {
         },
         buttons: {
           import: "Importar Contatos",
+          importCsv: "Importar CSV",
           add: "Adicionar Contato",
         },
         table: {
