@@ -637,6 +637,21 @@ const getGroups = async (
   }
 };
 
+const sendTyping = async (
+  sessionId: number,
+  chatId: string
+): Promise<void> => {
+  try {
+    const wbot = getWbot(sessionId);
+    const chat = await wbot.getChatById(chatId);
+    if (chat && typeof chat.sendStateTyping === "function") {
+      await chat.sendStateTyping();
+    }
+  } catch (err) {
+    // Non-fatal
+  }
+};
+
 export const WhatsappWebJsProvider: WhatsappProvider = {
   init,
   removeSession,
@@ -649,6 +664,8 @@ export const WhatsappWebJsProvider: WhatsappProvider = {
   getContacts,
   sendSeen,
   fetchChatMessages,
-  getGroups
+  getGroups,
+  sendTyping
 };
+
 

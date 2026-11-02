@@ -1069,6 +1069,21 @@ const getGroups = async (
   return groupsList;
 };
 
+const sendTyping = async (
+  sessionId: number,
+  chatId: string
+): Promise<void> => {
+  try {
+    const client = getWbot(sessionId);
+    const toJid = toDestinationJid(chatId);
+    if ((client as any).presence?.send) {
+      await (client as any).presence.send(toJid, "composing");
+    }
+  } catch (err) {
+    // Non-fatal presence simulation
+  }
+};
+
 export const ZapoProvider: WhatsappProvider = {
   init,
   removeSession,
@@ -1081,6 +1096,8 @@ export const ZapoProvider: WhatsappProvider = {
   getContacts,
   sendSeen,
   fetchChatMessages,
-  getGroups
+  getGroups,
+  sendTyping
 };
+
 

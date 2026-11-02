@@ -324,15 +324,39 @@ const CampaignModal = ({ open, onClose, onSave }) => {
               </FormControl>
 
               <Box>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1} flexWrap="wrap" gridGap={6}>
                   <Typography variant="subtitle2">Mensagem</Typography>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => setMessage((prev) => prev + " {nome}")}
-                  >
-                    + Inserir {"{nome}"}
-                  </Button>
+                  <Box display="flex" gridGap={6} flexWrap="wrap">
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setMessage((prev) => prev + " {nome}")}
+                    >
+                      + {"{nome}"}
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setMessage((prev) => prev + " {saudacao}")}
+                    >
+                      + {"{saudacao}"}
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setMessage((prev) => prev + " {protocolo}")}
+                    >
+                      + {"{protocolo}"}
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="secondary"
+                      onClick={() => setMessage((prev) => prev + " {Olá|Oi|Tudo bem?}")}
+                    >
+                      + Spintax {"{Olá|Oi}"}
+                    </Button>
+                  </Box>
                 </Box>
                 <TextField
                   variant="outlined"
@@ -341,8 +365,8 @@ const CampaignModal = ({ open, onClose, onSave }) => {
                   fullWidth
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Olá {nome}! Tudo bem? Temos uma novidade especial para você..."
-                  helperText="Dica: Use a tag {nome} para personalizar a mensagem com o nome do contato."
+                  placeholder="{Olá|Oi} {nome}! {saudacao}! Temos uma novidade especial para você... Ref: #{protocolo}"
+                  helperText="🛡️ Anti-ban: Use {nome}, {saudacao} (Bom dia/tarde/noite), {protocolo} (código único) e Spintax {Opção 1|Opção 2} para que cada mensagem seja diferente."
                 />
               </Box>
 
@@ -371,29 +395,35 @@ const CampaignModal = ({ open, onClose, onSave }) => {
                 )}
               </Box>
 
-              <Box mt={1} p={2} style={{ backgroundColor: "#f5f5f5", borderRadius: 8 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  🛡️ Intervalo Anti-Ban (Delay aleatório entre envios)
+              <Box mt={1} p={2} style={{ backgroundColor: "#f5f5f5", borderRadius: 8, border: "1px solid #e0e0e0" }}>
+                <Typography variant="subtitle2" gutterBottom style={{ color: "#2e7d32", fontWeight: 600 }}>
+                  🛡️ Proteção Anti-Ban Inteligente
                 </Typography>
                 <Typography variant="caption" color="textSecondary" display="block" gutterBottom>
-                  O sistema aguardará um tempo aleatório entre os segundos mínimo e máximo antes de disparar cada mensagem, simulando a digitação humana.
+                  • <b>Simulação Humana:</b> O sistema ativa o status <i>"Digitando..."</i> por alguns segundos antes de cada envio.
+                  <br />
+                  • <b>Intervalo Dinâmico:</b> O envio aguarda um tempo randômico entre o mínimo e o máximo configurados.
+                  <br />
+                  • <b>Descanso Automático por Lote:</b> A cada 20 disparos, o sistema faz uma pausa inteligente de 1 a 2 minutos para proteger o chip.
                 </Typography>
                 <Box display="flex" gridGap={16} mt={1}>
                   <TextField
-                    label="Mínimo (segundos)"
+                    label="Delay Mínimo (segundos)"
                     type="number"
                     variant="outlined"
                     size="small"
                     value={minDelay}
                     onChange={(e) => setMinDelay(Number(e.target.value))}
+                    helperText="Recomendado: 20s"
                   />
                   <TextField
-                    label="Máximo (segundos)"
+                    label="Delay Máximo (segundos)"
                     type="number"
                     variant="outlined"
                     size="small"
                     value={maxDelay}
                     onChange={(e) => setMaxDelay(Number(e.target.value))}
+                    helperText="Recomendado: 45s a 60s"
                   />
                 </Box>
               </Box>

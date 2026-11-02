@@ -8,8 +8,32 @@ import { getIO } from "../../libs/socket";
 import { logger } from "../../utils/logger";
 import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateContactService";
 import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketService";
-import SetTicketMessagesAsRead from "../../helpers/SetTicketMessagesAsRead";
 import CreateMessageService from "../MessageServices/CreateMessageService";
+import { sleep } from "../../utils/sleep";
+
+const getGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Bom dia";
+  if (hour >= 12 && hour < 18) return "Boa tarde";
+  return "Boa noite";
+};
+
+const getRandomProtocol = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+const parseSpintax = (text: string): string => {
+  let result = text;
+  const regex = /\{([^{}]+)\}/g;
+  while (regex.test(result)) {
+    result = result.replace(regex, (match, contents) => {
+      if (!contents.includes("|")) return match;
+      const options = contents.split("|");
+      return options[Math.floor(Math.random() * options.length)].trim();
+    });
+  }
+  return result;
+};
 
 const activeCampaignTimers: Map<number, NodeJS.Timeout> = new Map();
 
@@ -113,12 +137,30 @@ export const runCampaign = async (campaignId: number): Promise<void> => {
 
     const contactName = shipping.name || cleanNumber;
 
-    // Personalize variables
-    const personalizedBody = (campaign.message || "")
+    // 1. Resolve Spintax (e.g. {Olá|Oi|Como vai?})
+    let body = parseSpintax(campaign.message || "");
+
+    // 2. Personalize variables
+    const now = new Date();
+    const currentDate = now.toLocaleDateString("pt-BR");
+    const currentTime = now.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    body = body
       .replace(/{nome}/gi, contactName)
       .replace(/{name}/gi, contactName)
       .replace(/{numero}/gi, cleanNumber)
-      .replace(/{number}/gi, cleanNumber);
+      .replace(/{number}/gi, cleanNumber)
+      .replace(/{saudacao}/gi, getGreeting())
+      .replace(/{saudação}/gi, getGreeting())
+      .replace(/{protocolo}/gi, getRandomProtocol())
+      .replace(/{aleatorio}/gi, getRandomProtocol())
+      .replace(/{data}/gi, currentDate)
+      .replace(/{hora}/gi, currentTime);
+
+    const personalizedBody = body;
 
     // Register / update contact
     let contact: Contact;
@@ -150,6 +192,14 @@ export const runCampaign = async (campaignId: number): Promise<void> => {
     SetTicketMessagesAsRead(ticket);
 
     const chatId = isGroup ? `${cleanNumber}@g.us` : `${cleanNumber}@c.us`;
+
+    // Anti-ban: Simulate typing presence for 2-3.5 seconds before sending
+    try {
+      if (typeof whatsappProvider.sendTyping === "function") {
+        await whatsappProvider.sendTyping(campaign.whatsappId, chatId);
+        await sleep(2000 + Math.floor(Math.random() * 1500));
+      }
+    } catch {}
 
     if (campaign.mediaPath) {
       const mediaMime = getMimetypeFromPath(campaign.mediaPath);
@@ -213,9 +263,23 @@ export const runCampaign = async (campaignId: number): Promise<void> => {
   // Moderate and safe anti-ban delay (defaults 20-45s)
   const min = Math.max(5, campaign.minDelay || 20);
   const max = Math.max(min, campaign.maxDelay || 45);
-  const randomDelayMs = Math.floor(Math.random() * (max - min + 1) + min) * 1000;
+  let randomDelayMs = Math.floor(Math.random() * (max - min + 1) + min) * 1000;
 
-  logger.info(`Campaign #${campaignId}: waiting ${randomDelayMs / 1000}s anti-ban delay before next message...`);
+  // Anti-ban Batch Pause: A cada 20 mensagens entregues, aplica uma pausa extra de descanso (60 a 120s)
+  const deliveredCount = await CampaignShipping.count({
+    where: {
+      campaignId,
+      status: "DELIVERED"
+    }
+  });
+
+  if (deliveredCount > 0 && deliveredCount % 20 === 0) {
+    const extraBatchPauseMs = Math.floor(60 + Math.random() * 60) * 1000;
+    randomDelayMs += extraBatchPauseMs;
+    logger.info(`Campaign #${campaignId}: lote de ${deliveredCount} disparos atingido. Aplicando descanso inteligente de ${Math.round(randomDelayMs / 1000)}s.`);
+  } else {
+    logger.info(`Campaign #${campaignId}: aguardando ${randomDelayMs / 1000}s de intervalo anti-ban antes da próxima mensagem...`);
+  }
 
   const timer = setTimeout(() => {
     runCampaign(campaignId);
