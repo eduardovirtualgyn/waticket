@@ -21,7 +21,8 @@ import {
   ListItemText,
   ListItemIcon,
   Paper,
-  CircularProgress
+  CircularProgress,
+  FormControlLabel
 } from "@material-ui/core";
 import AttachFileIcon from "@material-ui/icons/AttachFile";
 import CloudUploadIcon from "@material-ui/icons/CloudUpload";
@@ -47,6 +48,7 @@ const CampaignModal = ({ open, onClose, onSave }) => {
   const [rawTextNumbers, setRawTextNumbers] = useState("");
   const [selectedContactIds, setSelectedContactIds] = useState([]);
   const [searchContact, setSearchContact] = useState("");
+  const [showOnlySelected, setShowOnlySelected] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -58,6 +60,8 @@ const CampaignModal = ({ open, onClose, onSave }) => {
       setMaxDelay(45);
       setRawTextNumbers("");
       setSelectedContactIds([]);
+      setSearchContact("");
+      setShowOnlySelected(false);
       setTab(0);
 
       // Load Whatsapps
@@ -134,19 +138,34 @@ const CampaignModal = ({ open, onClose, onSave }) => {
     );
   };
 
-  const handleSelectAllContacts = () => {
-    if (selectedContactIds.length === filteredContacts.length) {
-      setSelectedContactIds([]);
-    } else {
-      setSelectedContactIds(filteredContacts.map((c) => c.id));
+  const filteredContacts = contacts.filter((c) => {
+    if (showOnlySelected && !selectedContactIds.includes(c.id)) {
+      return false;
     }
-  };
-
-  const filteredContacts = contacts.filter(
-    (c) =>
+    if (!searchContact) return true;
+    return (
       c.name?.toLowerCase().includes(searchContact.toLowerCase()) ||
       c.number?.includes(searchContact)
-  );
+    );
+  });
+
+  const allFilteredSelected =
+    filteredContacts.length > 0 &&
+    filteredContacts.every((c) => selectedContactIds.includes(c.id));
+
+  const handleSelectAllContacts = () => {
+    if (allFilteredSelected) {
+      // Remove da seleção apenas os contatos que estão no filtro atual
+      const filteredIds = new Set(filteredContacts.map((c) => c.id));
+      setSelectedContactIds((prev) =>
+        prev.filter((id) => !filteredIds.has(id))
+      );
+    } else {
+      // Adiciona todos os contatos do filtro mantendo os selecionados anteriormente
+      const newIds = filteredContacts.map((c) => c.id);
+      setSelectedContactIds((prev) => Array.from(new Set([...prev, ...newIds])));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -393,12 +412,18 @@ const CampaignModal = ({ open, onClose, onSave }) => {
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Opção B: Selecionar da Agenda de Contatos {contacts.length > 0 && `(${contacts.length} contatos cadastrados)`}
-                </Typography>
-                <Box display="flex" gridGap={16} mb={1}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                  <Typography variant="subtitle2">
+                    Opção B: Selecionar da Agenda de Contatos
+                  </Typography>
+                  <Typography variant="body2" style={{ fontWeight: 600, color: "#3f51b5" }}>
+                    {selectedContactIds.length} selecionado(s) de {contacts.length} cadastrados
+                  </Typography>
+                </Box>
+
+                <Box display="flex" gridGap={8} mb={1} alignItems="center">
                   <TextField
-                    placeholder="Pesquisar contatos..."
+                    placeholder="Pesquisar contatos (ex: turma ou nome)..."
                     variant="outlined"
                     size="small"
                     fullWidth
@@ -408,13 +433,51 @@ const CampaignModal = ({ open, onClose, onSave }) => {
                   <Button
                     size="small"
                     variant="outlined"
+                    color="primary"
+                    style={{ whiteSpace: "nowrap" }}
                     onClick={handleSelectAllContacts}
+                    disabled={filteredContacts.length === 0}
                   >
-                    {selectedContactIds.length === filteredContacts.length && filteredContacts.length > 0
-                      ? "Desmarcar Todos"
+                    {allFilteredSelected
+                      ? searchContact
+                        ? `Desmarcar Filtrados (${filteredContacts.length})`
+                        : "Desmarcar Todos"
+                      : searchContact
+                      ? `Selecionar Filtrados (${filteredContacts.length})`
                       : "Selecionar Todos"}
                   </Button>
+                  {selectedContactIds.length > 0 && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      color="secondary"
+                      style={{ whiteSpace: "nowrap" }}
+                      onClick={() => setSelectedContactIds([])}
+                    >
+                      Limpar ({selectedContactIds.length})
+                    </Button>
+                  )}
                 </Box>
+
+                {selectedContactIds.length > 0 && (
+                  <Box display="flex" alignItems="center" mb={1}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={showOnlySelected}
+                          onChange={(e) => setShowOnlySelected(e.target.checked)}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Typography variant="caption" style={{ fontWeight: 500 }}>
+                          Ver apenas contatos selecionados ({selectedContactIds.length})
+                        </Typography>
+                      }
+                    />
+                  </Box>
+                )}
 
                 <Paper variant="outlined" style={{ maxHeight: 200, overflowY: "auto" }}>
                   <List dense>
