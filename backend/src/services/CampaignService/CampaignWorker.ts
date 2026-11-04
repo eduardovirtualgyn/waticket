@@ -9,6 +9,7 @@ import { logger } from "../../utils/logger";
 import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateContactService";
 import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketService";
 import CreateMessageService from "../MessageServices/CreateMessageService";
+import SetTicketMessagesAsRead from "../../helpers/SetTicketMessagesAsRead";
 import { sleep } from "../../utils/sleep";
 
 const getGreeting = (): string => {
@@ -189,7 +190,7 @@ export const runCampaign = async (campaignId: number): Promise<void> => {
       0,
       isGroup ? contact : undefined
     );
-    SetTicketMessagesAsRead(ticket);
+    await SetTicketMessagesAsRead(ticket);
 
     const chatId = isGroup ? `${cleanNumber}@g.us` : `${cleanNumber}@c.us`;
 
